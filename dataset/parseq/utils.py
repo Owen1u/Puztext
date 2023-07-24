@@ -76,27 +76,41 @@ class BaseTokenizer(ABC):
         """Internal method which performs the necessary filtering prior to decoding."""
         raise NotImplementedError
 
-    def decode(self, token_dists: Tensor, raw: bool = False) -> Tuple[List[str], List[Tensor]]:
-        """Decode a batch of token distributions.
+    # def decode(self, token_dists: Tensor, raw: bool = False) -> Tuple[List[str], List[Tensor]]:
+    #     """Decode a batch of token distributions.
 
-        Args:
-            token_dists: softmax probabilities over the token distribution. Shape: N, L, C
-            raw: return unprocessed labels (will return list of list of strings)
+    #     Args:
+    #         token_dists: softmax probabilities over the token distribution. Shape: N, L, C
+    #         raw: return unprocessed labels (will return list of list of strings)
 
-        Returns:
-            list of string labels (arbitrary length) and
-            their corresponding sequence probabilities as a list of Tensors
-        """
-        batch_tokens = []
-        batch_probs = []
-        for dist in token_dists:
-            probs, ids = dist.max(-1)  # greedy selection
-            if not raw:
-                probs, ids = self._filter(probs, ids)
-            tokens = self._ids2tok(ids, not raw)
-            batch_tokens.append(tokens)
-            batch_probs.append(probs)
-        return batch_tokens, batch_probs
+    #     Returns:
+    #         list of string labels (arbitrary length) and
+    #         their corresponding sequence probabilities as a list of Tensors
+    #     """
+    #     batch_tokens = []
+    #     batch_probs = []
+    #     for dist in token_dists:
+    #         probs, ids = dist.max(-1)  # greedy selection
+    #         if not raw:
+    #             probs, ids = self._filter(probs, ids)
+    #         tokens = self._ids2tok(ids, not raw)
+    #         batch_tokens.append(tokens)
+    #         batch_probs.append(probs)
+    #     return batch_tokens, batch_probs
+    
+    def decode(self,batch):
+        res=[]
+        for word in batch:
+            r=[]
+            for c in word:
+                c = int(c)
+                if c==self.bos_id or c==self.eos_id or c==self.pad_id:
+                    continue
+                else:
+                    r.append(c) 
+            r = self._ids2tok(r)
+            res.append(r)
+        return res
 
 
 class Tokenizer(BaseTokenizer):
@@ -110,10 +124,13 @@ class Tokenizer(BaseTokenizer):
         super().__init__(charset, specials_first, specials_last)
         self.eos_id, self.bos_id, self.pad_id = [self._stoi[s] for s in specials_first + specials_last]
 
+        self.fill = torch.nn.ConstantPad2d(padding=(0,25,0,0),value=self.pad_id)
     def encode(self, labels: List[str], device: Optional[torch.device] = None) -> Tensor:
         batch = [torch.as_tensor([self.bos_id] + self._tok2ids(y) + [self.eos_id], dtype=torch.long, device=device)
                  for y in labels]
-        return pad_sequence(batch, batch_first=True, padding_value=self.pad_id)
+        batch = pad_sequence(batch, batch_first=True, padding_value=self.pad_id)
+
+        return self.fill(batch)[:,:27]
 
     def _filter(self, probs: Tensor, ids: Tensor) -> Tuple[Tensor, List[int]]:
         ids = ids.tolist()
@@ -146,3 +163,8 @@ class CTCTokenizer(BaseTokenizer):
         ids = [x for x in ids if x != self.blank_id]  # Remove BLANKs
         # `probs` is just pass-through since all positions are considered part of the path
         return probs, ids
+
+if __name__=='__main__':
+    tokenizer = Tokenizer('0123456789')
+    print(tokenizer.eos_id, tokenizer.bos_id, tokenizer.pad_id)
+    print(tokenizer.decode(tokenizer.encode(['190','1234512345123451234512345'])[:,1:]))

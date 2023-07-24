@@ -3,7 +3,7 @@ Descripttion:
 version: 
 Contributor: Minjun Lu
 Source: Original
-LastEditTime: 2023-07-24 15:54:41
+LastEditTime: 2023-07-24 23:35:16
 '''
 import sys
 sys.path.append('/server19/lmj/github/puztext')
@@ -12,21 +12,22 @@ from torch.utils.data import Dataset
 from torchvision import transforms as T
 from dataset.parseq.augment import rand_augment_transform
 from dataset.parseq.dataset import LmdbDataset
+# from dataset.tokenizer import Tokenizer
 
 class SceneTextData(Dataset):
     def __init__(self,path,img_size,max_label_length,
-                 charset_path,augment:bool,rotation:int=0,
+                 charset,augment:bool,rotation:int=0,
                  remove_whitespace: bool = True, 
                  normalize_unicode: bool = True,
                  min_image_dim: int = 0) -> None:
         super().__init__()
         
-        with open(charset_path,encoding='utf-8') as file:
-            self.tokens = []
-            for k in file.readlines():
-                k = re.sub('[\r\n\t]','',k)
-                self.tokens.append(k)
-            charset = ''.join(self.tokens)
+        # with open(charset_path,encoding='utf-8') as file:
+        #     self.tokens = []
+        #     for k in file.readlines():
+        #         k = re.sub('[\r\n\t]','',k)
+        #         self.tokens.append(k)
+        #     charset = ''.join(self.tokens)
 
         transforms = []
         if augment:
@@ -53,7 +54,8 @@ class SceneTextData(Dataset):
         return len(self.dataset)
 
     def __getitem__(self, index: int):
-        return self.dataset[index]
+        image,label = self.dataset[index]
+        return image,label
 
 if __name__=='__main__':
     d = SceneTextData(path = '/server19/lmj/dataset/textimage/test/ArT',
