@@ -1,0 +1,56 @@
+model_name: mocopuz_text_focal
+model_save_dir: /server18/lmj/puztext/output
+
+# Loading Pretrained Model
+image_pretrained:
+model_pretrained:
+probe: False          # whether fix the params of pretrained model
+
+# Dataset
+data_sample_n:        # number of data samples
+train_dir: /server18/lmj/dataset/textimage/train/real
+test_dir: /server18/lmj/dataset/textimage/val
+dict_path: /server18/lmj/puztext/dataset/charset/36_lowercase.txt
+token_max_length: 25
+data_aug: 
+
+# Logging
+eval_epoch: 1
+save_epoch: 1
+eval_interval: 3000   # work only "eval_epoch" is None
+save_interval: 3000   # work only "save_epoch" is None
+
+# Training Config
+batchsize: 96        # batchsize for each, bs for all = batchsize * gpus_num
+num_worker: 8         # if windows，must be 0
+epochs: 100
+seed: 2023
+
+# Optimizer & Learning Rate
+grad_clip: 5.0
+optimizer: 'AdamW'      # Adam/Adadelta/RMSprop
+weight_decay: 0.1
+lr_scheduler:           # linear/consine
+lr_f: 0.00015
+lr_min: 0.00001
+multiplier: 1
+warmup_epochs: 0
+warmup: 'linear'
+
+# Loss Function
+loss: ['ce','mse']
+
+# Experimental Params.
+img_size: [3,32,128]   # c,h,w
+patch_size: [8,8]
+moco_m: 0.99
+arch: vit_base
+stop_grad_conv1: 
+embed_dim: 128
+moco_dim: 512
+moco_mlp_dim: 1024
+moco_m: 0.99
+moco_t: 0.2
+num_classes: 512
+depth: 12
+heads: 8
